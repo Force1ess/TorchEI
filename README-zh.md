@@ -25,29 +25,29 @@
     <img src="https://img.shields.io/github/license/torchei/torchei" alt="License"></a>
 </div>
 
-[中文](./README-zh.md)
 
 ## Introduction
 
-👋TorchEI, pronounced*/ˈtôrCHər/*(like torture), short for Pytorch Error Injection, is a high-speed toolbox for DNN Reliability's Research and Development. TorchEI enables you quickly and simply inject errors into DNN, collects information you needed, and harden your DNN.
+👋TorchEI, 发音为*/ˈtôrCHər/*(like torture),  是Pytorch Error Injection的缩写, 一个围绕DNN Reliability 研究的高速工具箱. TorchEI 使您能够快速简单地将错误注入 DNN，收集您需要的信息并强化您的 DNN。
+
 
 ## Features
 
-- Full typing system supported
-- Implemented methods from papers
-- Highly customizable
+- 完善的类型提示和文档支持
+- 包含来自 DNN 可靠性论文的方法
+- 高度定制化
 
 ## Quick Example
 
-Here we gonna show you a quick example, or you can try [interactive demo](https://colab.research.google.com/github/TorchEI/TorchEI/blob/main/example.ipynb) and [online editor](https://github.dev/TorchEI/TorchEI).
+在这里，我们将向您展示一个简单的示例，或者您可以尝试 [interactive demo](https://colab.research.google.com/github/TorchEI/TorchEI/blob/main/example.ipynb) 和[online editor](https://github.dev/TorchEI/TorchEI)
 
 #### Installing
 
-Install public distribution using  `pip3 install torchei` or [download](https://github.com/TorchEI/TorchEI/archive/refs/heads/main.zip) it.
+你可以使用  `pip3 install torchei` 安装或 [下载](https://github.com/TorchEI/TorchEI/archive/refs/heads/main.zip) 
 
 #### Example
 
-Init fault model
+初始化故障模型
 
 ```python
 import torch
@@ -58,19 +58,19 @@ data = torch.load('data/ilsvrc_valid8.pt')
 fault_model = torchei.fault_model(model,data)
 ```
 
-Calc reliability using emat method
+使用emat方法计算可靠性
 
 ```python
 fault_model.emat_attack(10,1e-3)
 ```
 
-Calc reliability using [SERN](https://dl.acm.org/doi/abs/10.1145/3386263.3406938)
+使用[SERN](https://dl.acm.org/doi/abs/10.1145/3386263.3406938)方法计算可靠性 
 
 ```python
 fault_model.sern_calc(output_class=1000)
 ```
 
-Harden DNN by ODR
+使用ODR方法加固DNN
 
 ```python
 fault_model.outlierDR_protection()
@@ -81,9 +81,9 @@ fault_model.emat_attack(10,1e-3)
 
  ![contributors](https://img.shields.io/github/contributors/torchei/torchei)
 
-If you found🧐 any bugs or have🖐️ any suggestions, please tell us.
+如果您发现🧐任何错误或有🖐️任何建议，请告诉我们。
 
-This repo is open to everyone wants to maintain together.
+这个 repo 欢迎所有想要一起维护的人。
 
 You can helps us with follow things:
 
@@ -92,7 +92,7 @@ You can helps us with follow things:
 - Translate our docs to your language
 - Other
 
-We want to build TorchEI to best toolbox in DNN Reliability for bit flip, adversarial attack, and others.
+我们希望将 TorchEI 构建为 DNN 可靠性方面的最佳工具箱，用于位翻转、对抗性攻击等。
 
 :e-mail: forcessless@foxmail.com
 

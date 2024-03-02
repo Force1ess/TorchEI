@@ -1,34 +1,37 @@
 import struct
 from random import randint
-from typing import Callable, OrderedDict
+from typing import Callable, OrderedDict, List
 
 import numpy as np
 import torch
-from scipy import stats
 
 __all__ = [
     "monte_carlo",
     "emat",
     "get_result",
     "sequence_lim_adaptive",
-    "blank_hook",
-    "zscore_dr_hook",
     "float_to_bin",
     "bin_to_float",
-    "set_zero",
     "single_bit_flip_31",
     "single_bit_flip",
     "single_bit_flip_verbose",
-    "dic_max",
     "monte_carlo_hook",
+    "zscore_forward",
 ]
 
 
+def zscore_forward(
+    std: torch.Tensor(), mean: torch.Tensor, self: torch.nn.Conv2d, x: torch.Tensor
+):
+    self.weight *= ~(torch.abs((self.weight - mean) / std) > 1000)
+    return self._conv_forward(x, self.weight, self.bias)
+
+
 def emat(
-    Per: list,
-    Prop: list,
+    Per: List[float],
+    Prop: List[float],
     device: str,
-    keys: list,
+    keys: List[str],
     dic: OrderedDict,
     rng: np.random.Generator,
     *args
@@ -41,7 +44,7 @@ def emat(
 def monte_carlo(
     attack_func: Callable[[float], float],
     p: float,
-    keys: list,
+    keys: List[str],
     dic: OrderedDict,
     rng: np.random.Generator,
     *args
@@ -60,36 +63,31 @@ def get_result(
     model: torch.nn.Module,
     data: torch.Tensor,
     topn: int = 1,
-    prop: bool = False,
-    sema=None,
+    reserve_prob: bool = False, # return probability of output
 ) -> torch.Tensor:
     if (not data.is_cuda) and next(model.parameters()).is_cuda:
-        data = data.to("cuda")
+        data = data.to(next(model.parameters()))
     output = torch.tensor([], device=data.device)
-    if sema is not None:
-        sema.acquire()
     for i in data:
         output = torch.cat((output, model(i)))
-    if sema is not None:
-        sema.release()
-    if prop:
+    if reserve_prob:
         result = torch.zeros(output.shape[0], 2, topn)
     else:
         result = torch.zeros(output.shape[0], topn)
     for idx, i in enumerate(output):
-        if prop:
+        if reserve_prob:
             probabilities = torch.nn.functional.softmax(i, dim=0)
             topn_prop, topn_catid = torch.topk(probabilities, topn)
             result[idx][0] = topn_catid
             result[idx][1] = topn_prop
         else:
-            topn_prop, topn_catid = torch.topk(i, topn)
+            _, topn_catid = torch.topk(i, topn)
             result[idx] = topn_catid
     return result
 
 
 def sequence_lim_adaptive(
-    estimation: list, times: int = 30, deviation: float = 0.01
+    estimation: List, times: int = 30, deviation: float = 0.01
 ) -> bool:
     if len(estimation) > times:
         return all(
@@ -102,43 +100,25 @@ def sequence_lim_adaptive(
     return False
 
 
-def blank_hook(module: torch.nn.Module, data: tuple, result: torch.tensor) -> None:
-    pass
-
-
-def zscore_dr_hook(module: torch.nn.Module, data: tuple) -> None:
-    data = data[0]
-    for i in [module.weight, data]:
-        if torch.max(i) > 2:
-            value = i.to("cpu")
-            trim = stats.trimboth(value, 0.1)
-            mean = trim.mean()
-            std = trim.std()
-            zscore = torch.abs((value - mean) / std)
-            outliers = [tuple(i) for i in torch.nonzero(zscore > 100000)]
-            for idx in outliers:
-                i[idx] = i[idx] / torch.tensor(2**128, dtype=torch.double)
-
-
 def monte_carlo_hook(
     attack_func: Callable[[float], None],
     p: float,
-    keys: list,
+    keys: List[str],
     rng: np.random.Generator,
     module: torch.nn.Module,
     input_data: tuple,
 ) -> None:
-    input_data: torch.tensor = input_data[0].flatten()
+    input_data: torch.Tensor = input_data[0].flatten()
     for i in range(len(input_data)):
         if rng.random() < p:
             input_data[i] = attack_func(input_data[i])
 
 
-def float_to_bin(num: float) -> list:
+def float_to_bin(num: float) -> List:
     return bin(struct.unpack("!I", struct.pack("!f", num))[0])[2:].zfill(32)
 
 
-def bin_to_float(binary: list) -> float:
+def bin_to_float(binary: List) -> float:
     return struct.unpack("!f", struct.pack("!I", int(binary, 2)))[0]
 
 
@@ -172,8 +152,3 @@ def single_bit_flip(num: float, bit: int = None, verbose: bool = False) -> float
 
 def single_bit_flip_verbose(num: float, bit: int = None) -> float:
     return single_bit_flip(num, bit, verbose=True)
-
-
-def dic_max(dic: OrderedDict) -> float:
-    """return the max value of a dictionary"""
-    return max([max(i) for i in dic.values()])
